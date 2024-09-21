@@ -1,3 +1,3 @@
-module github.com/nstearns96/purplexer
+module github.com/nstearns96/PurpLexer
 
 go 1.22

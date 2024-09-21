@@ -351,11 +351,9 @@ func TestLexer(t *testing.T) {
 		},
 		{
 			matchTerm:   BuiltInPrefix + "label",
-			matchString: "f00",
-			expectMatch: true,
-			tokens: []string{
-				"f00",
-			},
+			matchString: "0f",
+			expectMatch: false,
+			tokens:      nil,
 		},
 		{
 			matchTerm:   BuiltInPrefix + "label",
