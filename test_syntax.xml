@@ -1,0 +1,67 @@
+<Syntax>
+
+    <Term name="foo">
+        <Phrase>
+            <Token ident="foo" cardinality="one"/>
+        </Phrase>
+    </Term>
+
+    <Term name="fooAndBar">
+        <Phrase>
+            <Token ident="foo"/>
+        </Phrase>
+        <Phrase>
+            <Token ident="bar"/>
+        </Phrase>
+    </Term>
+
+    <Term name="fooOrBar">
+        <Phrase>
+            <Token ident="foo"/>
+            <Token ident="bar"/>
+        </Phrase>
+    </Term>
+
+    <Term name="fooOptionalBar">
+        <Phrase>
+            <Token ident="foo"/>
+        </Phrase>
+        <Phrase>
+            <Token ident="bar" cardinality="optional"/>
+        </Phrase>
+    </Term>
+    
+    <Term name="atLeastOneFoo">
+        <Phrase>
+            <Token ident="foo" cardinality="atLeastOne" separator=","/>
+        </Phrase>
+    </Term>
+
+    <Term name="fooManyBar">
+        <Phrase>
+            <Token ident="foo"/>
+        </Phrase>
+        <Phrase>
+            <Token ident="bar" cardinality="many" separator=","/>
+        </Phrase>
+    </Term>
+
+    <Term name="fooTerm">
+        <Phrase>
+            <Token ident="$foo"/>
+        </Phrase>
+    </Term>
+
+    <Term name="fooIntBar">
+        <Phrase>
+            <Token ident="foo"/>
+        </Phrase>
+        <Phrase>
+            <Token ident="!int"/>
+        </Phrase>
+        <Phrase>
+            <Token ident="bar"/>
+        </Phrase>
+    </Term>
+
+</Syntax>
