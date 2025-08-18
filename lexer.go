@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"errors"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -56,6 +57,15 @@ func (l *Lexer) MatchString(str string, term string) ([]string, bool) {
 
 func (l *Lexer) AddTerm(term SyntaxTerm, name string) {
 	l.registeredTerms[name] = term
+}
+
+func (l *Lexer) GetTerm(name string) (SyntaxTerm, error) {
+	term, exists := l.registeredTerms[name]
+	if !exists {
+		return SyntaxTerm{}, errors.New("term does not exist")
+	}
+
+	return term, nil
 }
 
 func (l *Lexer) ClearSyntax() {

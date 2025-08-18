@@ -11,6 +11,260 @@ var syntaxData []byte
 //go:embed invalid_test_syntax.xml
 var invalidSyntaxData []byte
 
+func ValidateSyntax(t *testing.T, lex *Lexer) {
+	type TokensData struct {
+		tokenCount    int
+		idents        []string
+		cardinalities []TermCardinality
+		separators    []string
+	}
+
+	tests := []struct {
+		termName    string
+		phraseCount int
+		tokens      []TokensData
+	}{
+		{
+			"foo",
+			1,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+			},
+		},
+		{
+			"fooAndBar",
+			2,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+				{
+					1,
+					[]string{
+						"bar",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+			},
+		},
+		{
+			"fooOrBar",
+			1,
+			[]TokensData{
+				{
+					2,
+					[]string{
+						"foo",
+						"bar",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+						CardinalityOne,
+					},
+					[]string{
+						"",
+						"",
+					},
+				},
+			},
+		},
+		{
+			"fooOptionalBar",
+			2,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+				{
+					1,
+					[]string{
+						"bar",
+					},
+					[]TermCardinality{
+						CardinalityOptional,
+					},
+					[]string{
+						"",
+					},
+				},
+			},
+		},
+		{
+			"atLeastOneFoo",
+			1,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityAtLeastOne,
+					},
+					[]string{
+						",",
+					},
+				},
+			},
+		},
+		{
+			"fooManyBar",
+			2,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+				{
+					1,
+					[]string{
+						"bar",
+					},
+					[]TermCardinality{
+						CardinalityMany,
+					},
+					[]string{
+						",",
+					},
+				},
+			},
+		},
+		{
+			"fooTerm",
+			1,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"$foo",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+			},
+		},
+		{
+			"fooIntBar",
+			3,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+				{
+					1,
+					[]string{
+						"!int",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+				{
+					1,
+					[]string{
+						"bar",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		term, err := lex.GetTerm(test.termName)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if len(term.Phrases) != test.phraseCount {
+			t.Errorf("expected %d phrases in term %s, found %d", len(term.Phrases), test.termName, test.phraseCount)
+		}
+
+		for phraseIdx, phrase := range term.Phrases {
+			phraseTokens := test.tokens[phraseIdx]
+			for phraseTokenIdx, phraseToken := range phrase.Alternatives {
+				if phraseToken.Ident != phraseTokens.idents[phraseTokenIdx] {
+					t.Errorf("expected token %s at token number %d in phrase number %d of term %s, found %s",
+						phraseTokens.idents[phraseTokenIdx], phraseTokenIdx, phraseIdx, test.termName, phraseToken.Ident)
+				}
+
+				if phraseToken.Cardinality != phraseTokens.cardinalities[phraseTokenIdx] {
+					t.Errorf("expected cardinality %v at token number %d in phrase number %d of term %s, found %v",
+						phraseTokens.cardinalities[phraseTokenIdx], phraseTokenIdx, phraseIdx, test.termName, phraseToken.Cardinality)
+				}
+
+				if phraseToken.Cardinality != phraseTokens.cardinalities[phraseTokenIdx] {
+					t.Errorf("expected separator %q at token number %d in phrase number %d of term %s, found %q",
+						phraseTokens.separators[phraseTokenIdx], phraseTokenIdx, phraseIdx, test.termName, phraseToken.Separator)
+				}
+			}
+		}
+	}
+}
+
 func TestLexer(t *testing.T) {
 	lex := NewLexer()
 	err := lex.LoadSyntaxXML(invalidSyntaxData)
@@ -24,6 +278,8 @@ func TestLexer(t *testing.T) {
 		t.Error(err)
 		return
 	}
+
+	ValidateSyntax(t, lex)
 
 	tests := []struct {
 		matchTerm   string
