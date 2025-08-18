@@ -245,6 +245,11 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 
 		for phraseIdx, phrase := range term.Phrases {
 			phraseTokens := test.tokens[phraseIdx]
+			if phraseTokens.tokenCount != len(phrase.Alternatives) {
+				t.Errorf("expected %d alternatives in phrase number %d of term %s, found %d",
+					phraseTokens.tokenCount, phraseIdx, test.termName, len(phrase.Alternatives))
+			}
+
 			for phraseTokenIdx, phraseToken := range phrase.Alternatives {
 				if phraseToken.Ident != phraseTokens.idents[phraseTokenIdx] {
 					t.Errorf("expected token %s at token number %d in phrase number %d of term %s, found %s",
@@ -256,7 +261,7 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 						phraseTokens.cardinalities[phraseTokenIdx], phraseTokenIdx, phraseIdx, test.termName, phraseToken.Cardinality)
 				}
 
-				if phraseToken.Cardinality != phraseTokens.cardinalities[phraseTokenIdx] {
+				if phraseToken.Separator != phraseTokens.separators[phraseTokenIdx] {
 					t.Errorf("expected separator %q at token number %d in phrase number %d of term %s, found %q",
 						phraseTokens.separators[phraseTokenIdx], phraseTokenIdx, phraseIdx, test.termName, phraseToken.Separator)
 				}
