@@ -16,6 +16,14 @@ const (
 	CardinalityMany
 )
 
+type SpaceParsing int64
+
+const (
+	SpaceAny SpaceParsing = iota
+	SpaceRequired
+	SpaceNone
+)
+
 const (
 	TermPrefix    = "$"
 	BuiltInPrefix = "!"
@@ -26,13 +34,16 @@ const (
 type SyntaxToken struct {
 	Ident       string          `xml:"ident,attr"`
 	Cardinality TermCardinality `xml:"cardinality,attr"`
-	// This is only used for the plural "TermCardinality"s
-	Separator string `xml:"separator,attr"`
+	// These are only used for the plural "TermCardinality"s
+	Separator            string       `xml:"separator,attr"`
+	SpaceBeforeSeparator SpaceParsing `xml:"spaceBeforeSeparator,attr"`
+	SpaceAfterSeparator  SpaceParsing `xml:"spaceAfterSeparator,attr"`
 }
 
 // List of Tokens, at least one of which must match
 type SyntaxPhrase struct {
 	Alternatives []SyntaxToken `xml:"Token"`
+	SpaceAfter   SpaceParsing  `xml:"spaceAfter,attr"`
 }
 
 // Whitespace separated phrases
@@ -51,7 +62,7 @@ func NewLexer() *Lexer {
 }
 
 func (l *Lexer) MatchString(str string, term string) ([]string, bool) {
-	result, _, matched, _ := l.lexString(&str, term)
+	result, _, matched, _ := l.lexString(&str, term, SpaceAny)
 	return result, matched && strings.TrimSpace(str) == ""
 }
 
@@ -72,13 +83,25 @@ func (l *Lexer) ClearSyntax() {
 	l.registeredTerms = make(map[string]SyntaxTerm)
 }
 
-func (l *Lexer) lexString(str *string, expectedTerm string) ([]string, int, bool, bool) {
+func (l *Lexer) lexString(str *string, expectedTerm string, spacing SpaceParsing) ([]string, int, bool, bool) {
 	result := make([]string, 0)
 
 	// Parse past whitespace
-	for r, _ := utf8.DecodeRuneInString(*str); len(*str) > 0 && unicode.IsSpace(r); {
-		*str = (*str)[1:]
-		r, _ = utf8.DecodeRuneInString(*str)
+	switch spacing {
+	case SpaceRequired:
+		if r, _ := utf8.DecodeRuneInString(*str); len(*str) > 0 && !unicode.IsSpace(r) {
+			return []string{}, 0, false, false
+		}
+		fallthrough
+	case SpaceAny:
+		for r, _ := utf8.DecodeRuneInString(*str); len(*str) > 0 && unicode.IsSpace(r); {
+			*str = (*str)[1:]
+			r, _ = utf8.DecodeRuneInString(*str)
+		}
+	case SpaceNone:
+		if r, _ := utf8.DecodeRuneInString(*str); len(*str) > 0 && unicode.IsSpace(r) {
+			return []string{}, 0, false, false
+		}
 	}
 
 	if strings.HasPrefix(expectedTerm, TermPrefix) {
@@ -111,11 +134,12 @@ func (l *Lexer) matchTerm(str *string, termName string) ([]string, int, bool, bo
 	result := make([]string, 0)
 	strCopy := strings.Clone(*str)
 	partialMatch := false
+	lastPhraseSpace := SpaceAny
 	for _, phrase := range term.Phrases {
 		matchedOne := false
 		for _, token := range phrase.Alternatives {
 			var matchedStrings []string
-			matchedStrings, matchedOne = l.parseToken(str, token)
+			matchedStrings, matchedOne = l.parseToken(str, token, lastPhraseSpace)
 			if matchedOne {
 				partialMatch = true
 				// Return on the first matched alternative
@@ -128,6 +152,8 @@ func (l *Lexer) matchTerm(str *string, termName string) ([]string, int, bool, bo
 			*str = strCopy
 			return result, 0, false, partialMatch
 		}
+
+		lastPhraseSpace = phrase.SpaceAfter
 	}
 
 	return result, 1, true, partialMatch
@@ -182,12 +208,12 @@ func (l *Lexer) matchBuiltIn(str *string, builtInName string) ([]string, int, bo
 	}
 }
 
-func (l *Lexer) parseToken(str *string, token SyntaxToken) ([]string, bool) {
+func (l *Lexer) parseToken(str *string, token SyntaxToken, spacing SpaceParsing) ([]string, bool) {
 	switch token.Cardinality {
 	default:
 		fallthrough
 	case CardinalityOne:
-		subStrings, numMatched, matches, _ := l.lexString(str, token.Ident)
+		subStrings, numMatched, matches, _ := l.lexString(str, token.Ident, spacing)
 
 		if numMatched != 1 {
 			return subStrings, false
@@ -199,7 +225,7 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken) ([]string, bool) {
 			return []string{}, true
 		}
 
-		subStrings, numMatched, matches, partialMatch := l.lexString(str, token.Ident)
+		subStrings, numMatched, matches, partialMatch := l.lexString(str, token.Ident, spacing)
 		if numMatched == 0 {
 			return subStrings, !partialMatch
 		}
@@ -209,8 +235,13 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken) ([]string, bool) {
 		splitString := strings.Split(*str, token.Separator)
 
 		subStrings := make([]string, 0)
+		firstMatch := true
 		for stringIdx := range splitString {
-			splitSubStrings, numMatched, matches, _ := l.lexString(str, token.Ident)
+			splitSpacing := spacing
+			if !firstMatch {
+				splitSpacing = token.SpaceAfterSeparator
+			}
+			splitSubStrings, numMatched, matches, _ := l.lexString(str, token.Ident, splitSpacing)
 			if !matches || numMatched == 0 {
 				return subStrings, false
 			}
@@ -218,11 +249,13 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken) ([]string, bool) {
 			subStrings = append(subStrings, splitSubStrings...)
 
 			if stringIdx < len(splitString)-1 {
-				_, _, matches, _ = l.lexString(str, token.Separator)
+				_, _, matches, _ = l.lexString(str, token.Separator, token.SpaceBeforeSeparator)
 				if !matches || numMatched == 0 {
 					return subStrings, false
 				}
 			}
+
+			firstMatch = false
 		}
 
 		return subStrings, len(subStrings) >= 1
@@ -234,8 +267,13 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken) ([]string, bool) {
 		splitString := strings.Split(*str, token.Separator)
 
 		subStrings := make([]string, 0)
+		firstMatch := true
 		for stringIdx := range splitString {
-			splitSubStrings, numMatched, matches, _ := l.lexString(str, token.Ident)
+			splitSpacing := spacing
+			if !firstMatch {
+				splitSpacing = token.SpaceAfterSeparator
+			}
+			splitSubStrings, numMatched, matches, _ := l.lexString(str, token.Ident, splitSpacing)
 			if !matches || numMatched == 0 {
 				return subStrings, false
 			}
@@ -243,11 +281,13 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken) ([]string, bool) {
 			subStrings = append(subStrings, splitSubStrings...)
 
 			if stringIdx < len(splitString)-1 {
-				_, _, matches, _ = l.lexString(str, token.Separator)
+				_, _, matches, _ = l.lexString(str, token.Separator, token.SpaceBeforeSeparator)
 				if !matches || numMatched == 0 {
 					return subStrings, false
 				}
 			}
+
+			firstMatch = false
 		}
 
 		return subStrings, true

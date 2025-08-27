@@ -33,15 +33,45 @@ func (tc *TermCardinality) UnmarshalXMLAttr(attr xml.Attr) error {
 	return fmt.Errorf("failed to parse string to TermCardinality %s", attr.Value)
 }
 
+func (ps *SpaceParsing) UnmarshalXMLAttr(attr xml.Attr) error {
+	switch attr.Value {
+	case "any":
+		*ps = SpaceAny
+		return nil
+	case "required":
+		*ps = SpaceRequired
+		return nil
+	case "none":
+		*ps = SpaceNone
+		return nil
+	}
+
+	return fmt.Errorf("failed to parse string to SpaceParsing %s", attr.Value)
+}
+
 func (tok *SyntaxToken) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	type resultType SyntaxToken
 	result := resultType{
-		Cardinality: CardinalityOne,
+		Cardinality:          CardinalityOne,
+		SpaceBeforeSeparator: SpaceAny,
+		SpaceAfterSeparator:  SpaceAny,
 	}
 	if err := d.DecodeElement(&result, &start); err != nil {
 		return err
 	}
 	*tok = (SyntaxToken)(result)
+	return nil
+}
+
+func (phr *SyntaxPhrase) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	type resultType SyntaxPhrase
+	result := resultType{
+		SpaceAfter: SpaceAny,
+	}
+	if err := d.DecodeElement(&result, &start); err != nil {
+		return err
+	}
+	*phr = (SyntaxPhrase)(result)
 	return nil
 }
 

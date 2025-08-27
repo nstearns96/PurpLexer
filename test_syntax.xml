@@ -64,4 +64,46 @@
         </Phrase>
     </Term>
 
+    <Term name="fooNoSpaceBar">
+        <Phrase spaceAfter="none">
+            <Token ident="foo"/>
+        </Phrase>
+        <Phrase>
+            <Token ident="bar"/>
+        </Phrase>
+    </Term>
+    
+    <Term name="fooSpaceBar">
+        <Phrase spaceAfter="required">
+            <Token ident="foo"/>
+        </Phrase>
+        <Phrase>
+            <Token ident="bar"/>
+        </Phrase>
+    </Term>
+    
+    <Term name="manyFooBarSeparatorNoSpaceBeforeAfter">
+        <Phrase>
+            <Token ident="foo" cardinality="many" separator="bar" spaceBeforeSeparator="none" spaceAfterSeparator="none"/>
+        </Phrase>
+    </Term>
+
+    <Term name="manyFooBarSeparatorSpaceBeforeAfter">
+        <Phrase>
+            <Token ident="foo" cardinality="many" separator="bar" spaceBeforeSeparator="required" spaceAfterSeparator="required"/>
+        </Phrase>
+    </Term>
+
+    <Term name="manyFooBarSeparatorNoSpaceBeforeSpaceAfter">
+        <Phrase>
+            <Token ident="foo" cardinality="many" separator="bar" spaceBeforeSeparator="none" spaceAfterSeparator="required"/>
+        </Phrase>
+    </Term>
+
+    <Term name="manyFooBarSeparatorSpaceBeforeNoSpaceAfter">
+        <Phrase>
+            <Token ident="foo" cardinality="many" separator="bar" spaceBeforeSeparator="required" spaceAfterSeparator="none"/>
+        </Phrase>
+    </Term>
+
 </Syntax>

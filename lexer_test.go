@@ -13,16 +13,19 @@ var invalidSyntaxData []byte
 
 func ValidateSyntax(t *testing.T, lex *Lexer) {
 	type TokensData struct {
-		tokenCount    int
-		idents        []string
-		cardinalities []TermCardinality
-		separators    []string
+		tokenCount            int
+		idents                []string
+		cardinalities         []TermCardinality
+		separators            []string
+		spaceBeforeSeparators []SpaceParsing
+		spaceAfterSeparators  []SpaceParsing
 	}
 
 	tests := []struct {
 		termName    string
 		phraseCount int
 		tokens      []TokensData
+		spacesAfter []SpaceParsing
 	}{
 		{
 			"foo",
@@ -39,7 +42,16 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
 			},
 		},
 		{
@@ -57,6 +69,12 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
 				{
 					1,
@@ -69,7 +87,17 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
+				SpaceAny,
 			},
 		},
 		{
@@ -90,7 +118,18 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 						"",
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+						SpaceAny,
+					},
 				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
 			},
 		},
 		{
@@ -108,6 +147,12 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
 				{
 					1,
@@ -120,7 +165,17 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
+				SpaceAny,
 			},
 		},
 		{
@@ -138,7 +193,16 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						",",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
 			},
 		},
 		{
@@ -156,6 +220,12 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
 				{
 					1,
@@ -168,7 +238,17 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						",",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
+				SpaceAny,
 			},
 		},
 		{
@@ -186,7 +266,16 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
 			},
 		},
 		{
@@ -204,6 +293,12 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
 				{
 					1,
@@ -215,6 +310,12 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					},
 					[]string{
 						"",
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
 					},
 				},
 				{
@@ -228,7 +329,218 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					[]string{
 						"",
 					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
 				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
+				SpaceAny,
+				SpaceAny,
+			},
+		},
+		{
+			"fooNoSpaceBar",
+			2,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+				},
+				{
+					1,
+					[]string{
+						"bar",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+				},
+			},
+			[]SpaceParsing{
+				SpaceNone,
+				SpaceAny,
+			},
+		},
+		{
+			"fooSpaceBar",
+			2,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+				},
+				{
+					1,
+					[]string{
+						"bar",
+					},
+					[]TermCardinality{
+						CardinalityOne,
+					},
+					[]string{
+						"",
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+					[]SpaceParsing{
+						SpaceAny,
+					},
+				},
+			},
+			[]SpaceParsing{
+				SpaceRequired,
+				SpaceAny,
+			},
+		},
+		{
+			"manyFooBarSeparatorNoSpaceBeforeAfter",
+			1,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityMany,
+					},
+					[]string{
+						"bar",
+					},
+					[]SpaceParsing{
+						SpaceNone,
+					},
+					[]SpaceParsing{
+						SpaceNone,
+					},
+				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
+			},
+		},
+		{
+			"manyFooBarSeparatorSpaceBeforeAfter",
+			1,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityMany,
+					},
+					[]string{
+						"bar",
+					},
+					[]SpaceParsing{
+						SpaceRequired,
+					},
+					[]SpaceParsing{
+						SpaceRequired,
+					},
+				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
+			},
+		},
+		{
+			"manyFooBarSeparatorNoSpaceBeforeSpaceAfter",
+			1,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityMany,
+					},
+					[]string{
+						"bar",
+					},
+					[]SpaceParsing{
+						SpaceNone,
+					},
+					[]SpaceParsing{
+						SpaceRequired,
+					},
+				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
+			},
+		},
+		{
+			"manyFooBarSeparatorSpaceBeforeNoSpaceAfter",
+			1,
+			[]TokensData{
+				{
+					1,
+					[]string{
+						"foo",
+					},
+					[]TermCardinality{
+						CardinalityMany,
+					},
+					[]string{
+						"bar",
+					},
+					[]SpaceParsing{
+						SpaceRequired,
+					},
+					[]SpaceParsing{
+						SpaceNone,
+					},
+				},
+			},
+			[]SpaceParsing{
+				SpaceAny,
 			},
 		},
 	}
@@ -265,6 +577,21 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 					t.Errorf("expected separator %q at token number %d in phrase number %d of term %s, found %q",
 						phraseTokens.separators[phraseTokenIdx], phraseTokenIdx, phraseIdx, test.termName, phraseToken.Separator)
 				}
+
+				if phraseToken.SpaceBeforeSeparator != phraseTokens.spaceBeforeSeparators[phraseTokenIdx] {
+					t.Errorf("expected spaceBefore %v at token number %d in phrase number %d of term %s, found %q",
+						phraseTokens.spaceBeforeSeparators[phraseTokenIdx], phraseTokenIdx, phraseIdx, test.termName, phraseToken.SpaceBeforeSeparator)
+				}
+
+				if phraseToken.SpaceAfterSeparator != phraseTokens.spaceAfterSeparators[phraseTokenIdx] {
+					t.Errorf("expected spaceAfter %v at token number %d in phrase number %d of term %s, found %q",
+						phraseTokens.spaceAfterSeparators[phraseTokenIdx], phraseTokenIdx, phraseIdx, test.termName, phraseToken.SpaceAfterSeparator)
+				}
+			}
+
+			if phrase.SpaceAfter != test.spacesAfter[phraseIdx] {
+				t.Errorf("expected phrase spaceAfter %v in phrase number %d of term %s, found %v",
+					test.spacesAfter[phraseIdx], phraseIdx, test.termName, phrase.SpaceAfter)
 			}
 		}
 	}
@@ -704,6 +1031,139 @@ func TestLexer(t *testing.T) {
 				"123",
 				"bar",
 			},
+		},
+		// Spacing matching
+		{
+			matchTerm:   TermPrefix + "fooNoSpaceBar",
+			matchString: "foobar",
+			expectMatch: true,
+			tokens: []string{
+				"foo",
+				"bar",
+			},
+		},
+		{
+			matchTerm:   TermPrefix + "fooNoSpaceBar",
+			matchString: "foo bar",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "fooSpaceBar",
+			matchString: "foobar",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "fooSpaceBar",
+			matchString: "foo bar",
+			expectMatch: true,
+			tokens: []string{
+				"foo",
+				"bar",
+			},
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorNoSpaceBeforeAfter",
+			matchString: "foobarfoo",
+			expectMatch: true,
+			tokens: []string{
+				"foo",
+				"foo",
+			},
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorNoSpaceBeforeAfter",
+			matchString: "foo barfoo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorNoSpaceBeforeAfter",
+			matchString: "foobar foo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorSpaceBeforeAfter",
+			matchString: "foobarfoo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorSpaceBeforeAfter",
+			matchString: "foo barfoo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorSpaceBeforeAfter",
+			matchString: "foobar foo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorSpaceBeforeAfter",
+			matchString: "foo bar foo",
+			expectMatch: true,
+			tokens: []string{
+				"foo",
+				"foo",
+			},
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorNoSpaceBeforeSpaceAfter",
+			matchString: "foobarfoo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorNoSpaceBeforeSpaceAfter",
+			matchString: "foo barfoo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorNoSpaceBeforeSpaceAfter",
+			matchString: "foobar foo",
+			expectMatch: true,
+			tokens: []string{
+				"foo",
+				"foo",
+			},
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorNoSpaceBeforeSpaceAfter",
+			matchString: "foo bar foo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorSpaceBeforeNoSpaceAfter",
+			matchString: "foobarfoo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorSpaceBeforeNoSpaceAfter",
+			matchString: "foo barfoo",
+			expectMatch: true,
+			tokens: []string{
+				"foo",
+				"foo",
+			},
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorSpaceBeforeNoSpaceAfter",
+			matchString: "foobar foo",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
+			matchTerm:   TermPrefix + "manyFooBarSeparatorSpaceBeforeNoSpaceAfter",
+			matchString: "foo bar foo",
+			expectMatch: false,
+			tokens:      nil,
 		},
 	}
 
