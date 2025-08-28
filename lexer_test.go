@@ -11,6 +11,23 @@ var syntaxData []byte
 //go:embed invalid_test_syntax.xml
 var invalidSyntaxData []byte
 
+type MatchingTestTable []struct {
+	matchTerm   string
+	matchString string
+	expectMatch bool
+	tokens      []string
+}
+
+func MakeTestLexer() (*Lexer, error) {
+	lex := NewLexer()
+	err := lex.LoadSyntaxXML(syntaxData)
+	if err != nil {
+		return nil, err
+	}
+
+	return lex, nil
+}
+
 func ValidateSyntax(t *testing.T, lex *Lexer) {
 	type TokensData struct {
 		tokenCount            int
@@ -597,11 +614,11 @@ func ValidateSyntax(t *testing.T, lex *Lexer) {
 	}
 }
 
-func TestLexer(t *testing.T) {
+func TestSyntaxLoading(t *testing.T) {
 	lex := NewLexer()
 	err := lex.LoadSyntaxXML(invalidSyntaxData)
 	if err == nil {
-		t.Error("Succesfully loaded invalid syntax data. This should have failed.")
+		t.Error("succesfully loaded invalid syntax data. This should have failed")
 		return
 	}
 
@@ -613,13 +630,54 @@ func TestLexer(t *testing.T) {
 
 	ValidateSyntax(t, lex)
 
-	tests := []struct {
-		matchTerm   string
-		matchString string
-		expectMatch bool
-		tokens      []string
-	}{
-		//Literal matching
+	lex.ClearSyntax()
+
+	_, err = lex.GetTerm("foo")
+	if err == nil {
+		t.Error("failed to clear syntax")
+		return
+	}
+}
+
+func RunMatchingTests(t *testing.T, lex *Lexer, tests MatchingTestTable) {
+	for _, tt := range tests {
+		matchRes := lex.MatchString(tt.matchString, tt.matchTerm)
+		if matchRes.matched != tt.expectMatch {
+			if tt.expectMatch {
+				t.Errorf("expected to match %s with term %s, but didn't", tt.matchString, tt.matchTerm)
+				continue
+			} else {
+				t.Errorf("did not expect to match %s with term %s, but did", tt.matchString, tt.matchTerm)
+				continue
+			}
+		}
+
+		if !tt.expectMatch {
+			continue
+		}
+
+		if len(tt.tokens) != len(matchRes.head.matchStrings) {
+			t.Errorf("expected tokens do not match for string %s with term %s. Expected %v but got %v", tt.matchString, tt.matchTerm, tt.tokens, matchRes.head.matchStrings)
+			continue
+		}
+
+		for tokIndex, tok := range matchRes.head.matchStrings {
+			if tok != tt.tokens[tokIndex] {
+				t.Errorf("expected tokens do not match for string %s with term %s. Expected %v but got %v", tt.matchString, tt.matchTerm, tt.tokens, matchRes.head.matchStrings)
+				break
+			}
+		}
+	}
+}
+
+func TestLiteralMatching(t *testing.T) {
+	lex, err := MakeTestLexer()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tests := MatchingTestTable{
 		{
 			matchTerm:   "foo",
 			matchString: "",
@@ -672,6 +730,19 @@ func TestLexer(t *testing.T) {
 				BuiltInPrefix,
 			},
 		},
+	}
+
+	RunMatchingTests(t, lex, tests)
+}
+
+func TestTermMatching(t *testing.T) {
+	lex, err := MakeTestLexer()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tests := MatchingTestTable{
 		//Term matching
 		{
 			matchTerm:   TermPrefix,
@@ -775,6 +846,19 @@ func TestLexer(t *testing.T) {
 			expectMatch: false,
 			tokens:      nil,
 		},
+	}
+
+	RunMatchingTests(t, lex, tests)
+}
+
+func TestCardinalityMatching(t *testing.T) {
+	lex, err := MakeTestLexer()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tests := MatchingTestTable{
 		{
 			matchTerm:   TermPrefix + "fooOptionalBar",
 			matchString: "foo",
@@ -829,6 +913,12 @@ func TestLexer(t *testing.T) {
 			tokens: []string{
 				"foo",
 			},
+		},
+		{
+			matchTerm:   TermPrefix + "atLeastOneFoo",
+			matchString: "foobar,",
+			expectMatch: false,
+			tokens:      nil,
 		},
 		{
 			matchTerm:   TermPrefix + "atLeastOneFoo",
@@ -896,6 +986,19 @@ func TestLexer(t *testing.T) {
 				"bar",
 			},
 		},
+	}
+
+	RunMatchingTests(t, lex, tests)
+}
+
+func TestBuiltInMatching(t *testing.T) {
+	lex, err := MakeTestLexer()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tests := MatchingTestTable{
 		// Built in matching
 		{
 			matchTerm:   BuiltInPrefix,
@@ -966,6 +1069,12 @@ func TestLexer(t *testing.T) {
 			tokens:      nil,
 		},
 		{
+			matchTerm:   BuiltInPrefix + "label",
+			matchString: "foo~",
+			expectMatch: false,
+			tokens:      nil,
+		},
+		{
 			matchTerm:   BuiltInPrefix + "match",
 			matchString: "",
 			expectMatch: true,
@@ -1021,6 +1130,19 @@ func TestLexer(t *testing.T) {
 			expectMatch: false,
 			tokens:      nil,
 		},
+	}
+
+	RunMatchingTests(t, lex, tests)
+}
+
+func TestComplexMatching(t *testing.T) {
+	lex, err := MakeTestLexer()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tests := MatchingTestTable{
 		//Complex matching
 		{
 			matchTerm:   TermPrefix + "fooIntBar",
@@ -1032,6 +1154,19 @@ func TestLexer(t *testing.T) {
 				"bar",
 			},
 		},
+	}
+
+	RunMatchingTests(t, lex, tests)
+}
+
+func TestSpacingMatching(t *testing.T) {
+	lex, err := MakeTestLexer()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tests := MatchingTestTable{
 		// Spacing matching
 		{
 			matchTerm:   TermPrefix + "fooNoSpaceBar",
@@ -1167,34 +1302,5 @@ func TestLexer(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		matchToks, matched := lex.MatchString(tt.matchString, tt.matchTerm)
-		if matched != tt.expectMatch {
-			if tt.expectMatch {
-				t.Errorf("expected to match %s with term %s, but didn't", tt.matchString, tt.matchTerm)
-				continue
-			} else {
-				t.Errorf("did not expect to match %s with term %s, but did", tt.matchString, tt.matchTerm)
-				continue
-			}
-		}
-
-		if !tt.expectMatch {
-			continue
-		}
-
-		if len(tt.tokens) != len(matchToks) {
-			t.Errorf("expected tokens do not match. Expected %v but got %v", tt.tokens, matchToks)
-			continue
-		}
-
-		for tokIndex, tok := range matchToks {
-			if tok != tt.tokens[tokIndex] {
-				t.Errorf("expected tokens do not match. Expected %v but got %v", tt.tokens, matchToks)
-				break
-			}
-		}
-	}
-
-	lex.ClearSyntax()
+	RunMatchingTests(t, lex, tests)
 }
