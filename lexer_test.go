@@ -2,6 +2,7 @@ package lexer
 
 import (
 	_ "embed"
+	"reflect"
 	"testing"
 )
 
@@ -642,7 +643,7 @@ func TestSyntaxLoading(t *testing.T) {
 func RunMatchingTests(t *testing.T, lex *Lexer, tests MatchingTestTable) {
 	for _, tt := range tests {
 		matchRes := lex.MatchString(tt.matchString, tt.matchTerm)
-		if matchRes.matched != tt.expectMatch {
+		if matchRes.Matched != tt.expectMatch {
 			if tt.expectMatch {
 				t.Errorf("expected to match %s with term %s, but didn't", tt.matchString, tt.matchTerm)
 				continue
@@ -656,14 +657,14 @@ func RunMatchingTests(t *testing.T, lex *Lexer, tests MatchingTestTable) {
 			continue
 		}
 
-		if len(tt.tokens) != len(matchRes.head.matchStrings) {
-			t.Errorf("expected tokens do not match for string %s with term %s. Expected %v but got %v", tt.matchString, tt.matchTerm, tt.tokens, matchRes.head.matchStrings)
+		if len(tt.tokens) != len(matchRes.Head.MatchStrings) {
+			t.Errorf("expected tokens do not match for string %s with term %s. Expected %v but got %v", tt.matchString, tt.matchTerm, tt.tokens, matchRes.Head.MatchStrings)
 			continue
 		}
 
-		for tokIndex, tok := range matchRes.head.matchStrings {
+		for tokIndex, tok := range matchRes.Head.MatchStrings {
 			if tok != tt.tokens[tokIndex] {
-				t.Errorf("expected tokens do not match for string %s with term %s. Expected %v but got %v", tt.matchString, tt.matchTerm, tt.tokens, matchRes.head.matchStrings)
+				t.Errorf("expected tokens do not match for string %s with term %s. Expected %v but got %v", tt.matchString, tt.matchTerm, tt.tokens, matchRes.Head.MatchStrings)
 				break
 			}
 		}
@@ -1303,4 +1304,232 @@ func TestSpacingMatching(t *testing.T) {
 	}
 
 	RunMatchingTests(t, lex, tests)
+}
+
+func TestMatchTree(t *testing.T) {
+	lex, err := MakeTestLexer()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tests := []struct {
+		matchTerm    string
+		matchString  string
+		expectedTree MatchNode
+	}{
+		{
+			matchTerm:   "foo",
+			matchString: "foo",
+			expectedTree: MatchNode{
+				MatchIdent:   "foo",
+				MatchStrings: []string{"foo"},
+				Children:     nil,
+			},
+		},
+		{
+			matchTerm:   "$foo",
+			matchString: "foo",
+			expectedTree: MatchNode{
+				MatchIdent:   "$foo",
+				MatchStrings: []string{"foo"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$fooAndBar",
+			matchString: "foobar",
+			expectedTree: MatchNode{
+				MatchIdent:   "$fooAndBar",
+				MatchStrings: []string{"foo", "bar"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo"},
+						Children:     nil,
+					},
+					{
+						MatchIdent:   "bar",
+						MatchStrings: []string{"bar"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$fooOrBar",
+			matchString: "foo",
+			expectedTree: MatchNode{
+				MatchIdent:   "$fooOrBar",
+				MatchStrings: []string{"foo"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$fooOrBar",
+			matchString: "bar",
+			expectedTree: MatchNode{
+				MatchIdent:   "$fooOrBar",
+				MatchStrings: []string{"bar"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "bar",
+						MatchStrings: []string{"bar"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$fooOptionalBar",
+			matchString: "foo",
+			expectedTree: MatchNode{
+				MatchIdent:   "$fooOptionalBar",
+				MatchStrings: []string{"foo"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$fooOptionalBar",
+			matchString: "foobar",
+			expectedTree: MatchNode{
+				MatchIdent:   "$fooOptionalBar",
+				MatchStrings: []string{"foo", "bar"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo"},
+						Children:     nil,
+					},
+					{
+						MatchIdent:   "bar",
+						MatchStrings: []string{"bar"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$atLeastOneFoo",
+			matchString: "foo",
+			expectedTree: MatchNode{
+				MatchIdent:   "$atLeastOneFoo",
+				MatchStrings: []string{"foo"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$atLeastOneFoo",
+			matchString: "foo, foo",
+			expectedTree: MatchNode{
+				MatchIdent:   "$atLeastOneFoo",
+				MatchStrings: []string{"foo", "foo"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo", "foo"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$fooManyBar",
+			matchString: "foobar",
+			expectedTree: MatchNode{
+				MatchIdent:   "$fooManyBar",
+				MatchStrings: []string{"foo", "bar"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo"},
+						Children:     nil,
+					},
+					{
+						MatchIdent:   "bar",
+						MatchStrings: []string{"bar"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$fooManyBar",
+			matchString: "foo bar, bar",
+			expectedTree: MatchNode{
+				MatchIdent:   "$fooManyBar",
+				MatchStrings: []string{"foo", "bar", "bar"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "foo",
+						MatchStrings: []string{"foo"},
+						Children:     nil,
+					},
+					{
+						MatchIdent:   "bar",
+						MatchStrings: []string{"bar", "bar"},
+						Children:     nil,
+					},
+				},
+			},
+		},
+		{
+			matchTerm:   "$fooTerm",
+			matchString: "foo",
+			expectedTree: MatchNode{
+				MatchIdent:   "$fooTerm",
+				MatchStrings: []string{"foo"},
+				Children: []MatchNode{
+					{
+						MatchIdent:   "$foo",
+						MatchStrings: []string{"foo"},
+						Children: []MatchNode{
+							{
+								MatchIdent:   "foo",
+								MatchStrings: []string{"foo"},
+								Children:     nil,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		matchRes := lex.MatchString(tt.matchString, tt.matchTerm)
+		if !matchRes.Matched {
+			t.Errorf("expected to match %s with term %s, but didn't", tt.matchString, tt.matchTerm)
+			continue
+		}
+
+		if !reflect.DeepEqual(*matchRes.Head, tt.expectedTree) {
+			t.Errorf("match tree for matching %s with term %s did not produce the expected tree. Expected %v got %v", tt.matchString, tt.matchTerm, tt.expectedTree, matchRes.Head)
+			continue
+		}
+	}
 }
