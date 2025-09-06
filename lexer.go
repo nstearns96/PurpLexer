@@ -73,7 +73,7 @@ func NewLexer() *Lexer {
 }
 
 func (l *Lexer) MatchString(str string, term string) MatchResult {
-	result, _, matched, _ := l.lexString(&str, term, SpaceAny)
+	result, _, matched := l.lexString(&str, term, SpaceAny)
 	if !matched {
 		result = nil
 	}
@@ -98,12 +98,12 @@ func (l *Lexer) ClearSyntax() {
 	l.registeredTerms = make(map[string]SyntaxTerm)
 }
 
-func (l *Lexer) lexString(str *string, expectedTerm string, spacing SpaceParsing) (*MatchNode, int, bool, bool) {
+func (l *Lexer) lexString(str *string, expectedTerm string, spacing SpaceParsing) (*MatchNode, int, bool) {
 	// Parse past whitespace
 	switch spacing {
 	case SpaceRequired:
 		if r, _ := utf8.DecodeRuneInString(*str); len(*str) > 0 && !unicode.IsSpace(r) {
-			return nil, 0, false, false
+			return nil, 0, false
 		}
 		fallthrough
 	case SpaceAny:
@@ -113,7 +113,7 @@ func (l *Lexer) lexString(str *string, expectedTerm string, spacing SpaceParsing
 		}
 	case SpaceNone:
 		if r, _ := utf8.DecodeRuneInString(*str); len(*str) > 0 && unicode.IsSpace(r) {
-			return nil, 0, false, false
+			return nil, 0, false
 		}
 	}
 
@@ -139,14 +139,14 @@ func (l *Lexer) lexString(str *string, expectedTerm string, spacing SpaceParsing
 	}
 
 	match := len(result.MatchStrings) > 0
-	return &result, len(result.MatchStrings), match, match
+	return &result, len(result.MatchStrings), match
 }
 
-func (l *Lexer) matchTerm(str *string, expectedTerm string) (*MatchNode, int, bool, bool) {
+func (l *Lexer) matchTerm(str *string, expectedTerm string) (*MatchNode, int, bool) {
 	termName := expectedTerm[1:]
 	term, found := l.registeredTerms[termName]
 	if !found {
-		return nil, 0, false, false
+		return nil, 0, false
 	}
 
 	result := MatchNode{
@@ -156,7 +156,6 @@ func (l *Lexer) matchTerm(str *string, expectedTerm string) (*MatchNode, int, bo
 	}
 
 	strCopy := strings.Clone(*str)
-	partialMatch := false
 	lastPhraseSpace := SpaceAny
 	for _, phrase := range term.Phrases {
 		matchedOne := false
@@ -168,27 +167,26 @@ func (l *Lexer) matchTerm(str *string, expectedTerm string) (*MatchNode, int, bo
 					result.MatchStrings = append(result.MatchStrings, matchNode.MatchStrings...)
 					result.Children = append(result.Children, *matchNode)
 				}
-				partialMatch = true
 				break
 			}
 		}
 
 		if !matchedOne {
 			*str = strCopy
-			return &result, 0, false, partialMatch
+			return &result, 0, false
 		}
 
 		lastPhraseSpace = phrase.SpaceAfter
 	}
 
-	return &result, 1, true, partialMatch
+	return &result, 1, true
 }
 
-func (l *Lexer) matchBuiltIn(str *string, expectedBuiltIn string) (*MatchNode, int, bool, bool) {
+func (l *Lexer) matchBuiltIn(str *string, expectedBuiltIn string) (*MatchNode, int, bool) {
 	builtInName := expectedBuiltIn[1:]
 	switch builtInName {
 	default:
-		return nil, 0, false, false
+		return nil, 0, false
 	case "label":
 		labelString := ""
 		for runeIdx, r := range *str {
@@ -210,7 +208,6 @@ func (l *Lexer) matchBuiltIn(str *string, expectedBuiltIn string) (*MatchNode, i
 				nil,
 			},
 			1,
-			match,
 			match
 	case "match":
 		labelString := *str
@@ -221,7 +218,6 @@ func (l *Lexer) matchBuiltIn(str *string, expectedBuiltIn string) (*MatchNode, i
 				nil,
 			},
 			1,
-			true,
 			true
 	case "int":
 		var intString string
@@ -238,7 +234,7 @@ func (l *Lexer) matchBuiltIn(str *string, expectedBuiltIn string) (*MatchNode, i
 		}
 
 		if intString == "-" {
-			return nil, 0, false, false
+			return nil, 0, false
 		}
 
 		*str = (*str)[len(intString):]
@@ -250,7 +246,6 @@ func (l *Lexer) matchBuiltIn(str *string, expectedBuiltIn string) (*MatchNode, i
 				nil,
 			},
 			1,
-			match,
 			match
 	}
 }
@@ -260,7 +255,7 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken, spacing SpaceParsing)
 	default:
 		fallthrough
 	case CardinalityOne:
-		matchNode, numMatched, matches, _ := l.lexString(str, token.Ident, spacing)
+		matchNode, numMatched, matches := l.lexString(str, token.Ident, spacing)
 
 		if numMatched != 1 {
 			return nil, false
@@ -272,9 +267,9 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken, spacing SpaceParsing)
 			return nil, true
 		}
 
-		matchNode, numMatched, matches, partialMatch := l.lexString(str, token.Ident, spacing)
+		matchNode, numMatched, matches := l.lexString(str, token.Ident, spacing)
 		if numMatched == 0 {
-			return nil, !partialMatch
+			return nil, !matches
 		}
 
 		return &MatchNode{token.Ident, matchNode.MatchStrings, matchNode.Children}, matches
@@ -290,7 +285,7 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken, spacing SpaceParsing)
 				splitSpacing = token.SpaceAfterSeparator
 			}
 
-			matchNode, numMatched, matches, _ := l.lexString(str, token.Ident, splitSpacing)
+			matchNode, numMatched, matches := l.lexString(str, token.Ident, splitSpacing)
 			if !matches || numMatched == 0 {
 				return nil, false
 			}
@@ -299,7 +294,7 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken, spacing SpaceParsing)
 			subNodes = append(subNodes, matchNode.Children...)
 
 			if stringIdx < len(splitString)-1 {
-				_, _, matches, _ = l.lexString(str, token.Separator, token.SpaceBeforeSeparator)
+				_, _, matches = l.lexString(str, token.Separator, token.SpaceBeforeSeparator)
 				if !matches || numMatched == 0 {
 					return nil, false
 				}
@@ -324,7 +319,7 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken, spacing SpaceParsing)
 			if !firstMatch {
 				splitSpacing = token.SpaceAfterSeparator
 			}
-			matchNode, numMatched, matches, _ := l.lexString(str, token.Ident, splitSpacing)
+			matchNode, numMatched, matches := l.lexString(str, token.Ident, splitSpacing)
 			if !matches || numMatched == 0 {
 				return nil, false
 			}
@@ -333,7 +328,7 @@ func (l *Lexer) parseToken(str *string, token SyntaxToken, spacing SpaceParsing)
 			subNodes = append(subNodes, matchNode.Children...)
 
 			if stringIdx < len(splitString)-1 {
-				_, _, matches, _ = l.lexString(str, token.Separator, token.SpaceBeforeSeparator)
+				_, _, matches = l.lexString(str, token.Separator, token.SpaceBeforeSeparator)
 				if !matches || numMatched == 0 {
 					return nil, false
 				}
